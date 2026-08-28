@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "build:web": "npm run build --workspace=@vessel/shared && npm run build --workspace=@vessel/web",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "db:generate": "npm run generate --workspace=@vessel/db",
