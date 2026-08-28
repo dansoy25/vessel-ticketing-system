@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "npm run generate --workspace=@vessel/db && tsc -p tsconfig.json",
+    "build": "npm run build --workspace=@vessel/shared && npm run build --workspace=@vessel/redis && npm run generate --workspace=@vessel/db && npm run build --workspace=@vessel/db && tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"
   },
