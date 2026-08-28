@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// "sqlite" for local dev without a running Postgres server. Switch back to
+// "postgresql" for staging/production (DATABASE_URL="postgresql://...").
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  OWNER
+}
+
+enum PassengerCategory {
+  REGULAR
+  STUDENT
+  PWD
+  SENIOR
+  CHILD_UNDER_7
+}
+
+enum ScanOutcome {
+  OK
+  NO_RIDES_REMAINING
+  INVALID
+}
+
+enum PaymentType {
+  REGISTRATION
+  TOPUP
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  scanEvents  ScanEvent[]
+  paymentLogs PaymentLog[]
+  cargoEntries CargoEntry[]
+  expenseLogs ExpenseLog[]
+
+  @@map("users")
+}
+
+model Passenger {
+  id             String            @id @default(cuid())
+  fullName       String
+  category       PassengerCategory @default(REGULAR)
+  idNumber       String?
+  idExpiry       DateTime?
+  email          String?
+  phone          String?
+  totalRides     Int
+  remainingRides Int
+  feePaid        Float
+  paymentMethod  String?
+  paymentRef     String?
+  qrToken        String            @unique
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  scanEvents  ScanEvent[]
+  paymentLogs PaymentLog[]
+
+  @@map("passengers")
+}
+
+/** One row per registration or top-up payment, so the activity feed and daily
+ * revenue audit reflect discrete events instead of Passenger's running totals.
+ * idNumber/idExpiry are snapshotted per-transaction (not just read off Passenger)
+ * so an owner audit can see exactly what ID was on file when a discount was applied. */
+model PaymentLog {
+  id            String      @id @default(cuid())
+  passengerId   String
+  type          PaymentType
+  ridesAdded    Int
+  amount        Float
+  /** Fare breakdown at the moment of this transaction — stored (not recomputed
+   * from the live FareSetting) so a reprinted receipt stays accurate even after
+   * the Owner changes rates later. */
+  baseFare      Float    @default(0)
+  discountRate  Float    @default(0)
+  discountAmount Float   @default(0)
+  paymentMethod String?
+  paymentRef    String?
+  idNumber      String?
+  idExpiry      DateTime?
+  createdById   String?
+  createdAt     DateTime    @default(now())
+
+  passenger Passenger @relation(fields: [passengerId], references: [id])
+  createdBy User?     @relation(fields: [createdById], references: [id])
+
+  @@index([passengerId])
+  @@map("payment_logs")
+}
+
+/** Kept even for INVALID scans (qrToken with no matching passenger) so the gate log is a complete audit trail. */
+model ScanEvent {
+  id          String      @id @default(cuid())
+  passengerId String?
+  qrToken     String
+  gateId      String
+  outcome     ScanOutcome
+  createdById String?
+  scannedAt   DateTime    @default(now())
+
+  passenger Passenger? @relation(fields: [passengerId], references: [id])
+  createdBy User?      @relation(fields: [createdById], references: [id])
+
+  @@index([passengerId])
+  @@map("scan_events")
+}
+
+model CargoEntry {
+  id           String   @id @default(cuid())
+  cargoType    String
+  weight       Float
+  fee          Float
+  vehiclePlate String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  createdBy User? @relation(fields: [createdById], references: [id])
+
+  @@map("cargo_entries")
+}
+
+model ExpenseLog {
+  id          String   @id @default(cuid())
+  category    String
+  amount      Float
+  description String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  createdBy User? @relation(fields: [createdById], references: [id])
+
+  @@map("expense_logs")
+}
+
+/** Singleton row (id "default") holding the fare rules used by every fee
+ * calculation. Owner edits it from /owner; changes apply to the very next
+ * registration or top-up since the API re-reads it on every request. */
+model FareSetting {
+  id                String   @id @default("default")
+  baseFarePerRide   Float
+  studentDiscount   Float
+  pwdDiscount       Float
+  seniorDiscount    Float
+  childDiscount     Float
+  updatedAt         DateTime @updatedAt
+
+  @@map("fare_settings")
+}

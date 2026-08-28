@@ -1,0 +1,28 @@
+{
+  "name": "vessel-ticketing-system",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "npm run generate --workspace=@vessel/db",
+    "db:migrate": "npm run migrate:dev --workspace=@vessel/db",
+    "db:push": "npm run db:push --workspace=@vessel/db",
+    "db:seed": "npm run seed --workspace=@vessel/db",
+    "db:studio": "npm run studio --workspace=@vessel/db"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@10.8.2"
+}
