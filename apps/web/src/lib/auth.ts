@@ -24,11 +24,13 @@ export function getStoredUser(): AuthUser | null {
 }
 
 export function storeSession(token: string, user: AuthUser): void {
+  if (typeof window === "undefined") return;
   window.localStorage.setItem(TOKEN_KEY, token);
   window.localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function clearSession(): void {
+  if (typeof window === "undefined") return;
   window.localStorage.removeItem(TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
 }
