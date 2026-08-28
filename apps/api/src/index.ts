@@ -5,6 +5,11 @@ import { prisma } from "@vessel/db";
 
 import { buildApp } from "./app.js";
 
+if (!process.env.DATABASE_URL) {
+  console.error("FATAL: DATABASE_URL environment variable is not set. Refusing to start.");
+  process.exit(1);
+}
+
 const app = buildApp();
 
 closeWithGrace(async ({ err }) => {
@@ -13,7 +18,7 @@ closeWithGrace(async ({ err }) => {
   await prisma.$disconnect();
 });
 
-const port = Number(process.env.PORT ?? 4000);
+const port = Number(process.env.PORT) || 3001;
 const host = process.env.HOST ?? "0.0.0.0";
 
 app
